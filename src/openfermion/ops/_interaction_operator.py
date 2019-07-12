@@ -13,6 +13,8 @@
 """Class and functions to store interaction operators."""
 import itertools
 
+import numpy
+
 from openfermion.ops import PolynomialTensor
 
 
@@ -29,15 +31,18 @@ class InteractionOperator(PolynomialTensor):
     general FermionOperator class. However, this class is able to exploit
     specific properties of how fermions interact to enable more numerically
     efficient manipulation of the data. Note that the operators stored in this
-    class take the form: constant + \sum_{p, q} h_[p, q] a^\dagger_p a_q +
+    class take the form:
 
-        \sum_{p, q, r, s} h_[p, q, r, s] a^\dagger_p a^\dagger_q a_r a_s.
+        .. math::
+
+            constant + \sum_{p, q} h_{p, q} a^\dagger_p a_q +
+            \sum_{p, q, r, s} h_{p, q, r, s} a^\dagger_p a^\dagger_q a_r a_s.
 
     Attributes:
-        one_body_tensor: The coefficients of the one-body terms (h[p, q]).
+        one_body_tensor: The coefficients of the one-body terms (:math:`h_{p, q}`).
             This is an n_qubits x n_qubits numpy array of floats.
         two_body_tensor: The coefficients of the two-body terms
-            (h[p, q, r, s]). This is an n_qubits x n_qubits x n_qubits x
+            (:math:`h_{p, q, r, s}`). This is an n_qubits x n_qubits x n_qubits x
             n_qubits numpy array of floats.
     """
 
@@ -48,10 +53,10 @@ class InteractionOperator(PolynomialTensor):
         Args:
             constant: A constant term in the operator given as a
                 float. For instance, the nuclear repulsion energy.
-            one_body_tensor: The coefficients of the one-body terms (h[p,q]).
+            one_body_tensor: The coefficients of the one-body terms (:math:`h_{p,q}`).
                This is an n_qubits x n_qubits numpy array of floats.
             two_body_tensor: The coefficients of the two-body terms
-                (h[p, q, r, s]). This is an n_qubits x n_qubits x n_qubits x
+                (:math:`h_{p, q, r, s}`). This is an n_qubits x n_qubits x n_qubits x
                 n_qubits numpy array of floats.
         """
         # Make sure nonzero elements are only for normal ordered terms.
@@ -59,8 +64,26 @@ class InteractionOperator(PolynomialTensor):
             {(): constant,
              (1, 0): one_body_tensor,
              (1, 1, 0, 0): two_body_tensor})
-        self.one_body_tensor = self.n_body_tensors[1, 0]
-        self.two_body_tensor = self.n_body_tensors[1, 1, 0, 0]
+
+    @property
+    def one_body_tensor(self):
+        """The value of the one-body tensor."""
+        return self.n_body_tensors[1, 0]
+
+    @one_body_tensor.setter
+    def one_body_tensor(self, value):
+        """Set the value of the one-body tensor."""
+        self.n_body_tensors[1, 0] = value
+
+    @property
+    def two_body_tensor(self):
+        """The value of the two-body tensor."""
+        return self.n_body_tensors[1, 1, 0, 0]
+
+    @two_body_tensor.setter
+    def two_body_tensor(self, value):
+        """Set the value of the two-body tensor."""
+        self.n_body_tensors[1, 1, 0, 0] = value
 
     def unique_iter(self, complex_valued=False):
         """
@@ -95,6 +118,21 @@ class InteractionOperator(PolynomialTensor):
             if self.two_body_tensor[quad] and quad not in seen:
                 seen |= set(_symmetric_two_body_terms(quad, complex_valued))
                 yield tuple(zip(quad, (1, 1, 0, 0)))
+
+    @classmethod
+    def zero(cls, n_qubits):
+        return cls(0, numpy.zeros((n_qubits,) * 2, dtype=numpy.complex128),
+                   numpy.zeros((n_qubits,) * 4, dtype=numpy.complex128))
+
+    def projected(self, indices, exact=False):
+        projected_n_body_tensors = self.projected_n_body_tensors(
+                indices, exact)
+        return type(self)(*(projected_n_body_tensors[key]
+            for key in [(), (1, 0), (1, 1, 0, 0)]))
+
+    def with_function_applied_elementwise(self, func):
+        return type(self)(*(func(tensor) for tensor in
+            [self.constant, self.one_body_tensor, self.two_body_tensor]))
 
 
 def _symmetric_two_body_terms(quad, complex_valued):

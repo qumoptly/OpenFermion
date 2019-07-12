@@ -20,7 +20,27 @@ from scipy.linalg import qr
 
 from openfermion.ops import (DiagonalCoulombHamiltonian,
                              InteractionOperator,
-                             QuadraticHamiltonian)
+                             QuadraticHamiltonian,
+                             QubitOperator)
+
+
+def random_qubit_operator(n_qubits=16,
+                          max_num_terms=16,
+                          max_many_body_order=16,
+                          seed=None):
+    prng = numpy.random.RandomState(seed)
+    op = QubitOperator()
+    num_terms = prng.randint(1, max_num_terms+1)
+    for _ in range(num_terms):
+        many_body_order = prng.randint(max_many_body_order+1)
+        term = []
+        for _ in range(many_body_order):
+            index = prng.randint(n_qubits)
+            action = prng.choice(('X', 'Y', 'Z'))
+            term.append((index, action))
+        coefficient = prng.randn()
+        op += QubitOperator(term, coefficient)
+    return op
 
 
 def haar_random_vector(n, seed=None):
@@ -155,17 +175,21 @@ def random_interaction_operator(
     return interaction_operator
 
 
-def random_quadratic_hamiltonian(n_qubits,
+def random_quadratic_hamiltonian(n_orbitals,
                                  conserves_particle_number=False,
                                  real=False,
+                                 expand_spin=False,
                                  seed=None):
     """Generate a random instance of QuadraticHamiltonian.
 
     Args:
-        n_qubits(int): the number of qubits
+        n_orbitals(int): the number of orbitals
         conserves_particle_number(bool): whether the returned Hamiltonian
             should conserve particle number
         real(bool): whether to use only real numbers
+        expand_spin: Whether to expand each orbital symmetrically into two
+            spin orbitals. Note that if this option is set to True, then
+            the total number of orbitals will be doubled.
 
     Returns:
         QuadraticHamiltonian
@@ -175,11 +199,18 @@ def random_quadratic_hamiltonian(n_qubits,
 
     constant = numpy.random.randn()
     chemical_potential = numpy.random.randn()
-    hermitian_mat = random_hermitian_matrix(n_qubits, real)
+    hermitian_mat = random_hermitian_matrix(n_orbitals, real)
+
     if conserves_particle_number:
         antisymmetric_mat = None
     else:
-        antisymmetric_mat = random_antisymmetric_matrix(n_qubits, real)
+        antisymmetric_mat = random_antisymmetric_matrix(n_orbitals, real)
+
+    if expand_spin:
+        hermitian_mat = numpy.kron(hermitian_mat, numpy.eye(2))
+        if antisymmetric_mat is not None:
+            antisymmetric_mat = numpy.kron(antisymmetric_mat, numpy.eye(2))
+
     return QuadraticHamiltonian(hermitian_mat, antisymmetric_mat,
                                 constant, chemical_potential)
 

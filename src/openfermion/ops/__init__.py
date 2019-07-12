@@ -12,6 +12,8 @@
 
 from ._binary_polynomial import BinaryPolynomial
 from ._diagonal_coulomb_hamiltonian import DiagonalCoulombHamiltonian
+from ._indexing import down_index, up_index
+from ._majorana_operator import MajoranaOperator
 from ._polynomial_tensor import PolynomialTensor, general_basis_change
 from ._quadratic_hamiltonian import QuadraticHamiltonian
 from ._symbolic_operator import SymbolicOperator
@@ -23,4 +25,5 @@ from ._fermion_operator import FermionOperator
 from ._interaction_operator import InteractionOperator
 from ._quad_operator import QuadOperator
 from ._qubit_operator import QubitOperator
+from ._ising_operator import IsingOperator
 from ._interaction_rdm import InteractionRDM

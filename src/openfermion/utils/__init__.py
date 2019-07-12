@@ -19,6 +19,8 @@ from ._commutators import anticommutator, commutator, double_commutator
 
 from ._grid import Grid
 
+from ._lattice import (HubbardSquareLattice, SpinPairs, Spin)
+
 from ._lcu_util import (lambda_norm,
                         preprocess_lcu_coefficients_for_reversible_sampling)
 
@@ -30,7 +32,11 @@ from ._operator_utils import (chemist_ordered, count_qubits,
                               is_hermitian, is_identity,
                               normal_ordered, prune_unused_indices,
                               reorder, up_then_down,
-                              load_operator, save_operator)
+                              load_operator, save_operator,
+                              group_into_tensor_product_basis_sets)
+
+from ._qubit_tapering_from_stabilizer import (reduce_number_of_terms,
+                                              taper_off_qubits)
 
 from ._rdm_mapping_functions import (kronecker_delta,
                                      map_two_pdm_to_two_hole_dm,
@@ -49,8 +55,7 @@ from ._slater_determinants import (gaussian_state_preparation_circuit,
 from ._special_operators import (majorana_operator, number_operator,
                                  s_minus_operator, s_plus_operator,
                                  s_squared_operator,
-                                 sx_operator, sy_operator, sz_operator,
-                                 up_index, down_index)
+                                 sx_operator, sy_operator, sz_operator)
 
 from ._testing_utils import (haar_random_vector,
                              random_antisymmetric_matrix,
@@ -58,6 +63,7 @@ from ._testing_utils import (haar_random_vector,
                              random_hermitian_matrix,
                              random_interaction_operator,
                              random_quadratic_hamiltonian,
+                             random_qubit_operator,
                              random_unitary_matrix,
                              module_importable)
 
@@ -72,6 +78,10 @@ from ._unitary_cc import (uccsd_convert_amplitude_format,
                           uccsd_singlet_generator,
                           uccsd_singlet_get_packed_amplitudes,
                           uccsd_singlet_paramsize)
+
+from ._wedge_product import (generate_parity_permutations,
+                             wedge)
+
 
 # Imports out of alphabetical order to avoid circular dependency.
 from ._jellium_hf_state import hartree_fock_state_jellium

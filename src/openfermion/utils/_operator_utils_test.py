@@ -13,6 +13,7 @@
 """Tests for operator_utils."""
 from __future__ import absolute_import
 
+import itertools
 import os
 import unittest
 
@@ -30,18 +31,24 @@ from openfermion.utils import (Grid, is_hermitian,
                                random_interaction_operator)
 
 from openfermion.utils._operator_utils import *
+from openfermion.utils._testing_utils import random_interaction_operator
 
 
 class OperatorUtilsTest(unittest.TestCase):
 
     def setUp(self):
         self.n_qubits = 5
+        self.majorana_operator = MajoranaOperator((1, 4, 9))
         self.fermion_term = FermionOperator('1^ 2^ 3 4', -3.17)
         self.fermion_operator = self.fermion_term + hermitian_conjugated(
             self.fermion_term)
         self.qubit_operator = jordan_wigner(self.fermion_operator)
         self.interaction_operator = get_interaction_operator(
             self.fermion_operator)
+
+    def test_n_qubits_majorana_operator(self):
+        self.assertEqual(self.n_qubits,
+                         count_qubits(self.majorana_operator))
 
     def test_n_qubits_single_fermion_term(self):
         self.assertEqual(self.n_qubits,
@@ -402,6 +409,14 @@ class HermitianConjugatedTest(unittest.TestCase):
                  BosonOperator('3^ 1', -2j) +
                  BosonOperator('2^ 2', -0.1j))
         self.assertEqual(op_hc, hermitian_conjugated(op))
+
+    def test_hermitian_conjugated_interaction_operator(self):
+        for n_orbitals, _ in itertools.product((1, 2, 5), range(5)):
+            operator = random_interaction_operator(n_orbitals)
+            qubit_operator = jordan_wigner(operator)
+            conjugate_operator = hermitian_conjugated(operator)
+            conjugate_qubit_operator = jordan_wigner(conjugate_operator)
+            assert hermitian_conjugated(qubit_operator) == conjugate_qubit_operator
 
     def test_exceptions(self):
         with self.assertRaises(TypeError):
@@ -840,6 +855,125 @@ class TestNormalOrdering(unittest.TestCase):
         self.assertTrue(op_132 == normal_ordered(op_132))
         self.assertTrue(op_132 == normal_ordered(op_321))
 
+    def test_interaction_operator(self):
+        for n_orbitals, real, _ in itertools.product(
+                (1, 2, 5), (True, False), range(5)):
+            operator = random_interaction_operator(n_orbitals, real=real)
+            normal_ordered_operator = normal_ordered(operator)
+            expected_qubit_operator = jordan_wigner(operator)
+            actual_qubit_operator = jordan_wigner(
+                    normal_ordered_operator)
+            assert expected_qubit_operator == actual_qubit_operator
+            two_body_tensor = normal_ordered_operator.two_body_tensor
+            n_orbitals = len(two_body_tensor)
+            ones = numpy.ones((n_orbitals,) * 2)
+            triu = numpy.triu(ones, 1)
+            shape = (n_orbitals ** 2, 1)
+            mask = (triu.reshape(shape) * ones.reshape(shape[::-1]) +
+                    ones.reshape(shape) * triu.reshape(shape[::-1])
+                    ).reshape((n_orbitals,) * 4)
+            assert numpy.allclose(mask * two_body_tensor,
+                    numpy.zeros((n_orbitals,) * 4))
+            for term in normal_ordered_operator:
+                order = len(term) // 2
+                left_term, right_term = term[:order], term[order:]
+                assert all(i[1] == 1 for i in left_term)
+                assert all(i[1] == 0 for i in right_term)
+                assert left_term == tuple(sorted(left_term, reverse=True))
+                assert right_term == tuple(sorted(right_term, reverse=True))
+
     def test_exceptions(self):
         with self.assertRaises(TypeError):
             _ = normal_ordered(1)
+
+
+class GroupTensorProductBasisTest(unittest.TestCase):
+
+    def test_demo_qubit_operator(self):
+        for seed in [None, 0, 10000]:
+            op = QubitOperator('X0 Y1', 2.) + QubitOperator('X1 Y2', 3.j)
+            sub_operators = group_into_tensor_product_basis_sets(op, seed=seed)
+            expected = {((0, 'X'), (1, 'Y')): QubitOperator('X0 Y1', 2.),
+                        ((1, 'X'), (2, 'Y')): QubitOperator('X1 Y2', 3.j)}
+            self.assertEqual(sub_operators, expected)
+
+            op = QubitOperator('X0 Y1', 2.) + QubitOperator('Y1 Y2', 3.j)
+            sub_operators = group_into_tensor_product_basis_sets(op, seed=seed)
+            expected = {((0, 'X'), (1, 'Y'), (2, 'Y')): op}
+            self.assertEqual(sub_operators, expected)
+
+            op = QubitOperator('', 4.) + QubitOperator('X1', 2.j)
+            sub_operators = group_into_tensor_product_basis_sets(op, seed=seed)
+            expected = {((1, 'X'),): op}
+            self.assertEqual(sub_operators, expected)
+
+            op = (QubitOperator('X0 X1', 0.1) + QubitOperator('X1 X2', 2.j)
+                  + QubitOperator('Y2 Z3', 3.) + QubitOperator('X3 Z4', 5.))
+            sub_operators = group_into_tensor_product_basis_sets(op, seed=seed)
+            expected1 = {
+                ((0, 'X'), (1, 'X'), (2, 'X'),
+                 (3, 'X'), (4, 'Z')): (QubitOperator('X0 X1', 0.1)
+                                       + QubitOperator('X1 X2', 2.j)
+                                       + QubitOperator('X3 Z4', 5.)),
+                ((2, 'Y'), (3, 'Z')): QubitOperator('Y2 Z3', 3.)
+            }
+            expected2 = {
+                ((0, 'X'), (1, 'X'),
+                 (2, 'Y'), (3, 'Z')): (QubitOperator('X0 X1', 0.1)
+                                       + QubitOperator('Y2 Z3', 3.)),
+                ((1, 'X'), (2, 'X'),
+                 (3, 'X'), (4, 'Z')): (QubitOperator('X1 X2', 2.j)
+                                       + QubitOperator('X3 Z4', 5.))
+            }
+            self.assertTrue(sub_operators == expected1 or
+                            sub_operators == expected2)
+
+    def test_empty_qubit_operator(self):
+        sub_operators = group_into_tensor_product_basis_sets(QubitOperator())
+        self.assertTrue(sub_operators == {})
+
+    def test_fermion_operator_bad_type(self):
+        with self.assertRaises(TypeError):
+            _ = group_into_tensor_product_basis_sets(FermionOperator())
+
+    def test_boson_operator_bad_type(self):
+        with self.assertRaises(TypeError):
+            _ = group_into_tensor_product_basis_sets(BosonOperator())
+
+    def test_none_bad_type(self):
+        with self.assertRaises(TypeError):
+            _ = group_into_tensor_product_basis_sets(None)
+
+
+class IsContextualTest(unittest.TestCase):
+
+    def setUp(self):
+        self.x1 = QubitOperator('X1',1.)
+        self.x2 = QubitOperator('X2',1.)
+        self.x3 = QubitOperator('X3',1.)
+        self.x4 = QubitOperator('X4',1.)
+        self.z1 = QubitOperator('Z1',1.)
+        self.z2 = QubitOperator('Z2',1.)
+        self.x1x2 = QubitOperator('X1 X2',1.)
+        self.y1y2 = QubitOperator('Y1 Y2',1.)
+
+    def test_empty_qubit_operator(self):
+        self.assertFalse(is_contextual(QubitOperator()))
+
+    def test_noncontextual_two_qubit_hamiltonians(self):
+        self.assertFalse(is_contextual(self.x1 + self.x2))
+        self.assertFalse(is_contextual(self.x1 + self.x2 + self.z2))
+        self.assertFalse(is_contextual(self.x1 + self.x2 + self.y1y2))
+
+    def test_contextual_two_qubit_hamiltonians(self):
+        self.assertTrue(is_contextual(self.x1 + self.x2 + self.z1 + self.z2))
+        self.assertTrue(is_contextual(self.x1 + self.x1x2 + self.z1 + self.z2))
+        self.assertTrue(is_contextual(self.x1 + self.y1y2 + self.z1 + self.z2))
+
+    def test_contextual_hamiltonians_with_extra_terms(self):
+        self.assertTrue(is_contextual(self.x1 + self.x2 + self.z1 + self.z2 + self.x3 + self.x4))
+        self.assertTrue(is_contextual(self.x1 + self.x1x2 + self.z1 + self.z2 + self.x3 + self.x4))
+        self.assertTrue(is_contextual(self.x1 + self.y1y2 + self.z1 + self.z2 + self.x3 + self.x4))
+
+    def test_commuting_hamiltonian(self):
+        self.assertFalse(is_contextual(self.x1 + self.x2 + self.x3 + self.x4))

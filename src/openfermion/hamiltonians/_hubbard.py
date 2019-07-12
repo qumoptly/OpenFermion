@@ -13,8 +13,8 @@
 """This module constructs Hamiltonians for the Fermi- and Bose-Hubbard models.
 """
 
-from openfermion.ops import FermionOperator, BosonOperator
-from openfermion.utils import number_operator, up_index, down_index
+from openfermion.ops import BosonOperator, FermionOperator, down_index, up_index
+from openfermion.utils import number_operator
 
 
 def fermi_hubbard(x_dimension, y_dimension, tunneling, coulomb,
@@ -44,7 +44,7 @@ def fermi_hubbard(x_dimension, y_dimension, tunneling, coulomb,
                      (a^\dagger_{i, \sigma} a_{j, \sigma} +
                       a^\dagger_{j, \sigma} a_{i, \sigma})
              + U \sum_{i} a^\dagger_{i, \uparrow} a_{i, \uparrow}
-                         a^\dagger_{j, \downarrow} a_{j, \downarrow}
+                         a^\dagger_{i, \downarrow} a_{i, \downarrow}
             \\
             &- \mu \sum_i \sum_{\sigma} a^\dagger_{i, \sigma} a_{i, \sigma}
              - h \sum_i (a^\dagger_{i, \uparrow} a_{i, \uparrow} -
