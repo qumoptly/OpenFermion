@@ -11,7 +11,6 @@
 #   limitations under the License.
 
 """Tests for linear_qubit_operator.py."""
-from __future__ import absolute_import, division
 
 import multiprocessing
 import unittest
@@ -44,7 +43,7 @@ class LinearQubitOperatorOptionsTest(unittest.TestCase):
 
     def test_get_processes_small(self):
         """Tests get_processes() with a small num."""
-        num = 2
+        num = 1
         self.assertEqual(self.options.get_processes(num), num)
 
     def test_get_processes_large(self):
@@ -205,7 +204,8 @@ class ParallelLinearQubitOperatorTest(unittest.TestCase):
 
     def test_init(self):
         """Tests __init__()."""
-        self.assertEqual(self.linear_operator.qubit_operator, self.qubit_operator)
+        self.assertEqual(self.linear_operator.qubit_operator,
+                         self.qubit_operator)
         self.assertEqual(self.linear_operator.n_qubits, self.n_qubits)
         self.assertIsNone(self.linear_operator.options.pool)
 

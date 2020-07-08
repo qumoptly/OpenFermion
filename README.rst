@@ -13,14 +13,11 @@ Hamiltonians. For more information, see our
 .. image:: https://readthedocs.org/projects/openfermion/badge/?version=latest
     :target: http://openfermion.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
-
-.. image:: https://coveralls.io/repos/github/quantumlib/OpenFermion/badge.svg?branch=master
-    :target: https://coveralls.io/github/quantumlib/OpenFermion
-
+    
 .. image:: https://badge.fury.io/py/openfermion.svg
     :target: https://badge.fury.io/py/openfermion
 
-.. image:: https://img.shields.io/badge/python-2.7%2C%203.4%2C%203.5%2C%203.6-brightgreen.svg
+.. image:: https://img.shields.io/badge/python-3.4%2C%203.5%2C%203.6-brightgreen.svg
 
 
 Run the interactive Jupyter Notebooks on MyBinder:
@@ -49,6 +46,8 @@ Electronic structure package plugins
 * `OpenFermion-Psi4 <http://github.com/quantumlib/OpenFermion-Psi4>`__ to support integration with `Psi4 <http://psicode.org>`__.
 
 * `OpenFermion-PySCF <http://github.com/quantumlib/OpenFermion-PySCF>`__ to support integration with `PySCF <https://github.com/sunqm/pyscf>`__.
+
+* `OpenFermion-Dirac <https://github.com/bsenjean/Openfermion-Dirac>`__ to support integration with `DIRAC <http://diracprogram.org/doku.php>`__.
 
 Getting started
 ===============
@@ -158,6 +157,7 @@ Authors
 `Nicholas Rubin <https://github.com/ncrubin>`__ (Google),
 `Daniel Sank <https://github.com/DanielSank>`__ (Google),
 `Nicolas Sawaya <https://github.com/nicolassawaya>`__ (Harvard),
+`Bruno Senjean <https://github.com/bsenjean>`__ (Leiden University),
 `Kanav Setia <https://github.com/kanavsetia>`__ (Dartmouth),
 `Hannah Sim <https://github.com/hsim13372>`__ (Harvard),
 `Damian Steiger <https://github.com/damiansteiger>`__ (ETH Zurich),
